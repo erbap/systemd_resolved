@@ -1,0 +1,8 @@
+---
+- name: "install_RedHat | Install the systemd-resolved packages"
+  when: ansible_distribution_version is version('8', '<')
+  yum:
+    name: "systemd-resolved"
+    update_cache: True
+    state: present
+...

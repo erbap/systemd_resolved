@@ -1,0 +1,31 @@
+---
+- name: "Gather facts if not yet done"
+  when: ansible_distribution is not defined
+  setup:
+
+- name: "Install OS dependant packages"
+  include_tasks: "install_{{ ansible_distribution_file_variety }}.yml"
+
+- name: "Configure systemd-resolved"
+  when: ansible_distribution_file_variety != "SUSE"
+  block:
+  - name: "Create a symlink for compatibility with traditional Linux programs"
+    file:
+      src: "/run/systemd/resolve/resolv.conf"
+      dest: "/etc/resolv.conf"
+      state: link
+      force: True
+    register: __link
+
+  - name: "Configure systemd-resolved"
+    template:
+      src: resolved.conf.j2
+      dest: /etc/systemd/resolved.conf
+    register: __systemd_resolved
+
+  - name: "Enable and (re)start the systemd-resolved service"
+    systemd:
+      name: systemd-resolved
+      enabled: yes
+      state: "{{ (__link.changed or __systemd_resolved.changed) | default(False) | ternary('restarted', 'started') }}"
+...
